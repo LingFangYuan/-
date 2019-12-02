@@ -76,14 +76,16 @@ class ZipFiles:
                 path = files[0].replace('\\', '/')
                 for file in files[1:]:
                     if len(file) != 0:
-                        # 拼接文件夹路径和文件名
-                        filelists.append(os.path.join(path, file[0]).replace('\\', '/'))
+                        for ff in file:
+                            # 拼接文件夹路径和文件名
+                            filelists.append(os.path.join(path, ff).replace('\\', '/'))
             # 逐个文件打包
             for file in filelists:
+                print('正在添加压缩文件: %s !' % file)
                 f.write(file)
         print('打包完成: %s !' % self.output_path)
 
 
 if __name__ == '__main__':
-    z = ZipFiles('../txt', '../zip', 'txt.zip')
+    z = ZipFiles('./txt', './zip', 'txt.zip')
     z.files_to_zip()
