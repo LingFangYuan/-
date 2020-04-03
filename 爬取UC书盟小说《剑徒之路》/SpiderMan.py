@@ -16,7 +16,6 @@ class SpiderMan:
     def __init__(self):
         self.downloader = HtmlDownloader()
         self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM()}
-        self.current_parser = None
         self.search_urls = {'UC': 'https://m.uctxt.com/modules/article/search.php?searchkey={}',
                             'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6'}
 
@@ -45,16 +44,15 @@ class SpiderMan:
                         break
                 except:
                     pass
-
+                
+                book_list = []
                 for parser_key, search_url in self.search_urls.items():
                     url = search_url.format(str_to_url(book_name, 'gbk'))
-                    self.current_parser = self.parsers[parser_key]
-
                     page_content = self.downloader.download(url)
-                    book_list = self.current_parser.parser_search(
-                        url, page_content)
-                    if book_list:
-                        break
+                    book_list_temp = self.parsers[parser_key].parser_search(
+                        url, page_content, parser_key)
+                    if book_list_temp:
+                        book_list += book_list_temp
 
                 if not book_list:
                     print('小说不存在！')
@@ -76,15 +74,16 @@ class SpiderMan:
                         continue
 
                     url = book_list[answer - 1][-1]
+                    parser_key = book_list[answer - 1][-2]
 
                     page_content = self.downloader.download(url)
-                    book_name, author, intor, urls = self.current_parser.parser_url(
+                    book_name, author, intor, urls = self.parsers[parser_key].parser_url(
                         url, page_content)
                     self.print_book(book_name, author, intor, urls)
                     answer = input('请确认是否下载(Y/N)?: ').upper()
                     if answer == 'Y':
                         download_proc = Process(
-                            target=self.download_proc, args=(url, store_q, (book_name, author, intor, urls)))
+                            target=self.download_proc, args=(url, store_q, (book_name, author, intor, urls, parser_key)))
                         download_proc.start()
                         download_proc.join()
                         break
@@ -96,7 +95,7 @@ class SpiderMan:
         if root_url is None:
             return
         # root_content = self.downloader.download(root_url)
-        book_name, author, intor, urls = data
+        book_name, author, intor, urls, parser_key = data
         # output = DataOutput(book_name, author, intor)
         store_q.put((book_name, author, intor))
         for url in urls:
@@ -105,7 +104,7 @@ class SpiderMan:
             section_title = url[1]
             time.sleep(3)
             page_content = self.downloader.download(page_url)
-            section_content = self.current_parser.parser_content(url, page_content)
+            section_content = self.parsers[parser_key].parser_content(url, page_content)
             # output.store_data(section_title, section_content)
             store_q.put((section_title, section_content))
         store_q.put('end')  # 通知保存进程结束
@@ -132,13 +131,13 @@ class SpiderMan:
                 time.sleep(0.1)
 
     def print_books(self, book_list):
-        def _print(index, cate, author, name):
-            print('[{:>2}]{:{b}^4}[{:{b}^10}]《{:{b}<}》'.format(
-                index, cate, author, name, b=chr(12288)))
-        _print('*', '分类', '作者', '书名')
+        def _print(index, cate, author, name, source):
+            print('[{:>2}]{:{b}^4}[{:{b}^10}]《{:{b}^10}》 {}'.format(
+                index, cate, author, name, source, b=chr(12288)))
+        _print('*', '分类', '作者', '书名', '来源')
         for index, book in enumerate(book_list):
-            _print(index + 1, book[0], book[2], book[1])
-        _print('0', '', '取消本次搜索', '')
+            _print(index + 1, book[0], book[2], book[1], book[3])
+        _print('0', '', '取消本次搜索', '', '')
 
     def print_book(self, book_name, author, intor, urls):
         print('书名：{}'.format(book_name))

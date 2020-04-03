@@ -64,12 +64,12 @@ class HtmlParserUC:
         except Exception as e:
             print(e, page_url)
 
-    def parser_search(self, page_url, page_content):
+    def parser_search(self, page_url, page_content, parser_key):
         '''
         解析网页中搜索结果页面
         :params page_url: 爬取小说网页的URL
         :params page_content: 搜索结果网页的内容
-        :return: 返回小说类别，小说名称，小说作者及URL的元组列表
+        :return: 返回小说类别，小说名称，小说作者，小说来源，解析器键及URL的元组列表
         '''
         if page_url is None or page_content is None:
             return
@@ -86,6 +86,8 @@ class HtmlParserUC:
                 book_info = book.get_text().split()
                 book_info[0] = book_info[0].strip('[]')
                 book_url = urljoin(page_url, book.find('a').get('href'))
+                book_info.append('uctxt.com')
+                book_info.append(parser_key)
                 book_info.append(book_url)
                 result.append(tuple(book_info))
             return result
@@ -99,12 +101,12 @@ class HtmlParserSM:
     def __init__(self):
         self.downloader = HtmlDownloader()
 
-    def parser_search(self, page_url, page_content):
+    def parser_search(self, page_url, page_content, parser_key):
         '''
         解析网页中搜索结果页面
         :params page_url: 搜索小说网页的URL
         :params page_content: 搜索结果网页的内容
-        :return: 返回小说类别，小说名称，小说作者及URL的元组列表
+        :return: 返回小说类别，小说名称，小说作者，小说来源，解析器键及URL的元组列表
         '''
         if page_url is None or page_content is None:
             return
@@ -127,7 +129,7 @@ class HtmlParserSM:
                 './/div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/a/text() | .//div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/text()')
 
             lv = dict(zip(label, value))
-            result.append((lv['类型'], book_name, lv['作者'], book_url))
+            result.append((lv['类型'], book_name, lv['作者'], lv['来源'], parser_key, book_url))
 
             return result
         except Exception as e:
