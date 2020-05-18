@@ -16,8 +16,8 @@ class SpiderMan:
     def __init__(self):
         self.downloader = HtmlDownloader()
         self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM()}
-        self.search_urls = {'UC': 'https://m.uctxt.com/modules/article/search.php?searchkey={}',
-                            'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6'}
+        self.search_urls = { # 'UC': 'https://m.uctxt.com/modules/article/search.php?searchkey={}', UC书盟网已失效
+                            'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6',}
 
     def crawl(self):
         freeze_support()

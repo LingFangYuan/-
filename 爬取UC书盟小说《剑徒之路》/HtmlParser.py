@@ -192,7 +192,7 @@ class HtmlParserSM:
             return
         try:
             soup = BeautifulSoup(page_content, 'lxml')
-            content = soup.find('div', id=['content', 'nr1', 'TXT'])
+            content = soup.find(name=['div', 'p'], id=['content', 'nr1', 'TXT'])
             temp = content.get_text()
             if temp is None:
                 return
