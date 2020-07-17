@@ -3,7 +3,7 @@ from multiprocessing import Process, Queue, freeze_support
 from urllib.parse import quote
 
 from HtmlDownloader import HtmlDownloader
-from HtmlParser import HtmlParserUC, HtmlParserSM
+from HtmlParser import HtmlParserUC, HtmlParserSM, HtmlParser51
 from DataOutput import DataOutput
 
 
@@ -15,9 +15,10 @@ class SpiderMan:
 
     def __init__(self):
         self.downloader = HtmlDownloader()
-        self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM()}
+        self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM(), '51': HtmlParser51()}
         self.search_urls = { # 'UC': 'https://m.uctxt.com/modules/article/search.php?searchkey={}', UC书盟网已失效
-                            'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6',}
+                            'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6',
+                            '51': 'http://www.51shu.net/modules/article/search.php?searchkey={}'}
 
     def crawl(self):
         freeze_support()
@@ -48,9 +49,9 @@ class SpiderMan:
                 book_list = []
                 for parser_key, search_url in self.search_urls.items():
                     url = search_url.format(str_to_url(book_name, 'gbk'))
-                    page_content = self.downloader.download(url)
+                    page_url, page_content = self.downloader.download(url)
                     book_list_temp = self.parsers[parser_key].parser_search(
-                        url, page_content, parser_key)
+                        page_url, page_content, parser_key)
                     if book_list_temp:
                         book_list += book_list_temp
 
@@ -76,14 +77,14 @@ class SpiderMan:
                     url = book_list[answer - 1][-1]
                     parser_key = book_list[answer - 1][-2]
 
-                    page_content = self.downloader.download(url)
+                    page_url, page_content = self.downloader.download(url)
                     book_name, author, intor, urls = self.parsers[parser_key].parser_url(
-                        url, page_content)
+                        page_url, page_content)
                     self.print_book(book_name, author, intor, urls)
                     answer = input('请确认是否下载(Y/N)?: ').upper()
                     if answer == 'Y':
                         download_proc = Process(
-                            target=self.download_proc, args=(url, store_q, (book_name, author, intor, urls, parser_key)))
+                            target=self.download_proc, args=(page_url, store_q, (book_name, author, intor, urls, parser_key)))
                         download_proc.start()
                         download_proc.join()
                         break
@@ -94,17 +95,17 @@ class SpiderMan:
     def download_proc(self, root_url, store_q, data):
         if root_url is None:
             return
-        # root_content = self.downloader.download(root_url)
+        #root_url1, root_content = self.downloader.download(root_url)
         book_name, author, intor, urls, parser_key = data
         # output = DataOutput(book_name, author, intor)
         store_q.put((book_name, author, intor))
         for url in urls:
             print('正在爬取：%s  %s' % url)
-            page_url = url[0]
+            url1 = url[0]
             section_title = url[1]
             time.sleep(3)
-            page_content = self.downloader.download(page_url)
-            section_content = self.parsers[parser_key].parser_content(url, page_content)
+            page_url, page_content = self.downloader.download(url1)
+            section_content = self.parsers[parser_key].parser_content(page_url, page_content)
             # output.store_data(section_title, section_content)
             store_q.put((section_title, section_content))
         store_q.put('end')  # 通知保存进程结束

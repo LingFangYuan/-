@@ -1,6 +1,8 @@
+import time
+from random import choice
+
 import requests
 import chardet
-from random import choice
 
 from Tools import translation
 
@@ -44,7 +46,7 @@ USER_AGENTS = [
 
 class HtmlDownloader:
 
-    def download(self, url):
+    def download(self, url, retris=5):
         if url is None:
             return None
         try:
@@ -56,7 +58,10 @@ class HtmlDownloader:
                 encoding = chardet.detect(r.content[:1024])['encoding']
                 encoding = 'GBK' if encoding == 'GB2312' else encoding
                 r.encoding = encoding
-                return r.text
+                return r.url, r.text
         except Exception as e:
             print(e, url)
+            if retris > 0:
+                time.sleep(0.5)
+                self.download(url, retris-1)
         return None
