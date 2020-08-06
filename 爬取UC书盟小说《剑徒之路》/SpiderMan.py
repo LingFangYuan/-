@@ -1,24 +1,24 @@
 import time
 from multiprocessing import Process, Queue, freeze_support
-from urllib.parse import quote
 
 from HtmlDownloader import HtmlDownloader
-from HtmlParser import HtmlParserUC, HtmlParserSM, HtmlParser51
+from HtmlParser import HtmlParserUC, HtmlParserSM, HtmlParser51, HtmlParserBAOSHU
 from DataOutput import DataOutput
+from Tools import str_to_url
 
-
-def str_to_url(str, encoding):
-    return quote(str.encode(encoding))
 
 
 class SpiderMan:
 
     def __init__(self):
         self.downloader = HtmlDownloader()
-        self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM(), '51': HtmlParser51()}
+        self.parsers = {'UC': HtmlParserUC(), 'SM': HtmlParserSM(), '51': HtmlParser51(),
+                        'BAOSHU': HtmlParserBAOSHU()}
+        self.down_type = {'UC': 'web', 'SM': 'web', '51': 'web', 'BAOSHU': 'file'}
         self.search_urls = { # 'UC': 'https://m.uctxt.com/modules/article/search.php?searchkey={}', UC书盟网已失效
                             'SM': 'https://so.m.sm.cn/s?q={}&from=smor&safe=1&by=submit&snum=6',
-                            '51': 'http://www.51shu.net/modules/article/search.php?searchkey={}'}
+                            '51': 'http://www.51shu.net/modules/article/search.php?searchkey={}',
+                            'BAOSHU': 'https://m.baoshuu.com/search.asp?word={}'}
 
     def crawl(self):
         freeze_support()
@@ -98,18 +98,22 @@ class SpiderMan:
         #root_url1, root_content = self.downloader.download(root_url)
         book_name, author, intor, urls, parser_key = data
         # output = DataOutput(book_name, author, intor)
-        store_q.put((book_name, author, intor))
-        for url in urls:
-            print('正在爬取：%s  %s' % url)
-            url1 = url[0]
-            section_title = url[1]
-            time.sleep(3)
-            page_url, page_content = self.downloader.download(url1)
-            section_content = self.parsers[parser_key].parser_content(page_url, page_content)
-            # output.store_data(section_title, section_content)
-            store_q.put((section_title, section_content))
-        store_q.put('end')  # 通知保存进程结束
-        print('爬取完成！')
+        
+        if self.down_type[parser_key] == 'web':
+            store_q.put((book_name, author, intor))
+            for url in urls:
+                print('正在爬取：%s  %s' % url)
+                url1 = url[0]
+                section_title = url[1]
+                time.sleep(3)
+                page_url, page_content = self.downloader.download(url1)
+                section_content = self.parsers[parser_key].parser_content(page_url, page_content)
+                # output.store_data(section_title, section_content)
+                store_q.put((section_title, section_content))
+            store_q.put('end')  # 通知保存进程结束
+            print('爬取完成！')
+        elif self.down_type[parser_key] == 'file':
+            self.downloader.download_file(urls, './txt', book_name, parser_key)
 
     def store_proc(self, store_q):
         output = None

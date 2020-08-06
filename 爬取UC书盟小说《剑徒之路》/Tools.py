@@ -1,5 +1,7 @@
 import re
 
+from urllib.parse import quote
+
 
 def translation(url):
     transtable = {'http://www.paoshuba.cc/Partlist/': [('source', 'http://m.xpaoshuba.cc/wapbook/'),
@@ -32,3 +34,9 @@ def deutf8Str(t):
         for i in t:
             r.append(chr(1 ^ ord(i)))
         return ''.join(r)
+
+def str_to_url(str, encoding):
+    return quote(str.encode(encoding))
+
+def str_to_url1(parten):
+    return str_to_url(parten.group(1), 'gbk') + '.txt'

@@ -335,7 +335,7 @@ class HtmlParser51(HtmlParser):
             
             # 判断本章是否有下一页
             book_title = soup.find('h1', id='BookTitle').get_text()
-            pattern = re.search(r'\((\d)+/(\d)+\)', book_title)
+            pattern = re.search(r'\((\d+)/(\d+)\)', book_title)
             
             next_url = soup.find(name='a', text='下一页').get('href')
             next_url = urljoin(page_url, next_url)
@@ -347,3 +347,79 @@ class HtmlParser51(HtmlParser):
                 return section_content
         except Exception as e:
             print(e, page_url)
+
+
+class HtmlParserBAOSHU(HtmlParser):
+    '''宝书网'''
+    
+    def __init__(self):
+        self.downloader = HtmlDownloader()
+        
+    def parser_search(self, page_url, page_content, parser_key):
+        '''
+        解析网页中搜索结果页面
+        :params page_url: 搜索小说网页的URL
+        :params page_content: 搜索结果网页的内容
+        :return: 返回小说类别，小说名称，小说作者，小说来源，解析器键及URL的元组列表
+        '''
+        if page_url is None or page_content is None:
+            return
+        try:
+            result = []
+            soup = BeautifulSoup(page_content, 'lxml')
+
+            book_list = soup.find(
+                'div', class_='sslist')
+            if book_list:
+                book_list = book_list.find_all('li')
+                for book in book_list:
+                    h1_a = book.find_all('a')
+                    book_url = urljoin(page_url, h1_a[1].get('href')) if len(h1_a) >= 2 else ''
+                    book_name = h1_a[1].get_text() if len(h1_a) >= 2 else ''
+                    book_cate = h1_a[0].get_text() if len(h1_a) >= 2 else ''
+                    book_author = ''
+                    
+                    book_info = [book_cate, book_name, book_author]
+                    book_info.append('baoshuu.com')
+                    book_info.append(parser_key)
+                    book_info.append(book_url)
+                    result.append(tuple(book_info))
+                
+            return result
+        except Exception as e:
+            print(e, page_url)
+    
+    def parser_url(self, page_url, page_content):
+        '''
+        解析网页中待爬取章节的URL
+        :params page_url: 爬取小说网页的URL
+        :params page_content: 爬取小说网页的内容
+        :return: 返回小说名称，作者，内容简介，和各章节的名称及URL
+        '''
+        if page_url is None or page_content is None:
+            return
+        try:
+            soup = BeautifulSoup(page_content, 'lxml')
+
+            book_info = soup.find(class_='mlist')
+            h1 = book_info.find(name='h1')  # 小说名称
+            a = book_info.find('li').find('a') # 作者
+            
+            intro = soup.find('p', class_='intro')  # 简介
+
+            book_name = h1.get_text() if h1 is not None else ''
+            author = a.get_text() if a is not None else ''
+            intro = soup.find('div', class_='conten')
+            intro = intro.get_text()if intro is not None else ''
+            
+            a_list = soup.find('div', class_='qd').find_all('a', class_='right')
+            urls = []
+            for a in a_list:
+                section_url = urljoin(page_url, a.get('href'))
+                section_name = a.get_text()
+                urls.append((section_url, section_name))
+            
+            return book_name, author, intro, urls
+        except Exception as e:
+            print(e, page_url)
+    

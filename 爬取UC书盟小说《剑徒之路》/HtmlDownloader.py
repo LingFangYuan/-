@@ -1,10 +1,11 @@
 import time
+import re
 from random import choice
 
 import requests
 import chardet
 
-from Tools import translation
+from Tools import translation, str_to_url1
 
 USER_AGENTS = [
     "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
@@ -43,6 +44,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10"
 ]
 
+baoshu_cookie = '__cfduid=d5c73cf21ca09d39c1f25b4b4c824179a1596696028; UM_distinctid=173c2800f8527-068d216314ec-4c302372-100200-173c2800f87169; CNZZDATA1277680135=1412004463-1596699555-https%253A%252F%252Fm.baoshuu.com%252F%7C1596699555; Hm_lvt_beea64d95d9d5ffa32d7e7ad09ba18de=1596701110; Hm_lpvt_beea64d95d9d5ffa32d7e7ad09ba18de=1596701440; ASPSESSIONIDASQDRDAB=LIPAGOKBAHKKPGHHPMHIOAAB'
 
 class HtmlDownloader:
 
@@ -53,6 +55,9 @@ class HtmlDownloader:
             url = translation(url)
             user_agent = choice(USER_AGENTS)
             headers = {'User-Agent': user_agent}
+            if 'baoshuu.com' in url:
+                headers = {'User-Agent': user_agent,
+                            'Cookie': baoshu_cookie}
             r = requests.get(url, headers=headers)
             if r.status_code == 200:
                 encoding = chardet.detect(r.content[:1024])['encoding']
@@ -64,4 +69,34 @@ class HtmlDownloader:
             if retris > 0:
                 time.sleep(0.5)
                 self.download(url, retris-1)
+        return None
+        
+    def download_file(self, urls, path, file_name, key):
+        if len(urls) == 0:
+            return None
+        try:
+            url = re.sub(r'([^/]+?)\.txt$', str_to_url1, urls[0][0])
+            print('正在下载：%s  %s' % (url, file_name))
+            user_agent = choice(USER_AGENTS)
+            headers = {'User-Agent': user_agent}
+            if key == 'baoshuu.com':
+                headers = {'User-Agent': user_agent,
+                            'Cookie': baoshu_cookie}
+            with requests.get(url, headers=headers, stream=True) as r, open(path + '/' + file_name + '.txt', 'wb') as f:
+                if r.status_code == 200:
+                    size = int(r.headers['Content-length'])
+                    count = 0
+                    for chunk in r.iter_content(chunk_size=1024):
+                        f.write(chunk)
+                        count += 1
+                        rate = count * 1024 * 100 / size
+                        rate = 100 if rate > 100 else rate
+                        print('\r下载进度[{}]：{:.2f}%。'.format(file_name, rate), end='')
+                    print()
+                    print('下载完毕!')
+        except Exception as e:
+            print(e, url)
+            if len(urls) > 1:
+                time.sleep(0.5)
+                self.download_file(urls[1:], path, file_name)
         return None
