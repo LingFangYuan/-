@@ -141,21 +141,27 @@ class HtmlParserSM(HtmlParser):
             html = etree.HTML(page_content)
 
             book_name = take_first(html.xpath(
-                './/div/a[@id and @class="c-header-inner c-flex-1"]//span[@c-bind="data.text"]/em/text()'))
+                './/div[@class="c-header-title c-line-clamp-2 icon-right"]/span/span/text()'))
             # url地址解码
             url_code = take_first(html.xpath(
-                './/div/a[@id and @class="c-header-inner c-flex-1"]//span[@c-bind="data.text"]/em/ancestor::a[@class="c-header-inner c-flex-1"]/script/text()'))
-            book_url = deutf8Str(url_code)
+                './/div[@class="c-header--v1_0_0 c-title-l c-flex"]/a[@class="c-header-inner c-flex-1"]/@href'))
+            # book_url = deutf8Str(url_code)
+            book_url = url_code
             if book_url is None:
                 return
 
-            label = my_strip(html.xpath(
-                './/div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="c-property-label c-font-dark"]/text()'))
-            value = html.xpath(
-                './/div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/a/text() | .//div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/text()')
+            # label = my_strip(html.xpath(
+                # './/div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="c-property-label c-font-dark"]/text()'))
+            # value = html.xpath(
+                # './/div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/a/text() | .//div/a[@id and @class="c-header-inner c-flex-1"]/following::*//p[@class="js-c-property-content c-property-content c-line-clamp-1"]/span[@class="js-c-property-text"]/text()')
 
-            lv = dict(zip(label, value))
-            result.append((lv['类型'], book_name, lv['作者'], lv['来源'], parser_key, book_url))
+            # lv = dict(zip(label, value))
+            book_type = take_first(html.xpath('.//span[@class="js-c-paragraph-text"]/span[@class="white"]/text()')).split()[-1]
+            book_author = take_first(html.xpath('.//span[@class="novel-author-label"]/a/text()'))
+            book_source = take_first(html.xpath('.//div[contains(@class, "td J_TableHeadTd")]/span/text()')).split('：')[-1]
+            
+            # result.append((lv['类型'], book_name, lv['作者'], lv['来源'], parser_key, book_url))
+            result.append((book_type, book_name, book_author, book_source, parser_key, book_url))
 
             return result
         except Exception as e:
