@@ -50,6 +50,10 @@ class SpiderMan:
                 for parser_key, search_url in self.search_urls.items():
                     url = search_url.format(str_to_url(book_name, 'gbk'))
                     page_url, page_content = self.downloader.download(url)
+                    
+                    # with open('test' + parser_key + '.html', 'w', encoding='utf-8') as f:
+                        # f.write(page_content)
+                    
                     book_list_temp = self.parsers[parser_key].parser_search(
                         page_url, page_content, parser_key)
                     if book_list_temp:
